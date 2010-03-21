@@ -1,0 +1,20 @@
+int rightx;
+int ball_speed;
+int paddleheight = 40;
+
+void setup(){
+	size(200, 200);
+	stroke(255);
+	rightx = height/2;
+	ball_speed = -5;
+}
+
+void draw(){
+	background(0);
+	leftpaddle();
+	rightpaddle();
+	moveball();
+}		
+
+void leftpaddle(){
+	line = 
