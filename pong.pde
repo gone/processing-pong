@@ -9,6 +9,7 @@ Number player1_score;
 Number player2_score;
 float[] player1_score_pos;
 float[] player2_score_pos;
+Text mouseover;
 
 PFont font;
 
@@ -32,10 +33,10 @@ void setup(){
 
 void intro(){
 	objects = new Thing[4];
-	Text pong = new Text("PONG", new float[] {width/2, height*.15}, COLOR);
-	Text newgame = new Text("Start", new float[] {width/2, height*.25}, COLOR);
-	Text options = new Text("Options", new float[] {width/2, height*.35}, COLOR);
-	Text credits = new Text("Created By Ben Beecher", new float[] {width/2, height*.80}, COLOR);
+	Text pong = new Text("PONG", new float[] {width/2, height*.15}, COLOR, false);
+	Text newgame = new Text("Start", new float[] {width/2, height*.25}, COLOR, true);
+	Text options = new Text("Options", new float[] {width/2, height*.35}, COLOR, true);
+	Text credits = new Text("Created By Ben Beecher", new float[] {width/2, height*.80}, COLOR, false);
 	objects[0] = pong;
 	objects[1] = newgame;
 	objects[2] = options;
@@ -63,22 +64,24 @@ void newGame(){
 					   MOUSE);
 	objects[2] = right;
 
-
 	player1_score_pos = new float[] {width/2+width*.2, height*.05};
 	player2_score_pos = new float[] {width/2-width*.2, height*.05};
 	player1_score = new Number(0, player1_score_pos, COLOR);
 	player2_score = new Number(0, player2_score_pos, COLOR);
 	objects[3] = player1_score;
 	objects[4] = player2_score;
-
 }
 
 void mousePressed() {
 	baller.speed = new float[]{-5, 0};
+	if (mouseover != null){
+		mouseover.isClicked();
+	}
 }
 
 void draw(){
 	background(0);
+	mouseover = null;
 
 	for (int i = 0; i < objects.length; i++){
 		objects[i].display();
@@ -140,7 +143,16 @@ class Text extends Thing{
 		fill(col);
 		textAlign(CENTER);
 		text(txt, pos[X], pos[Y]);
+		if (select){
+			isSelected();
+		}
 	}
+	void isSelected(){
+		//test that mouse is over
+		mouseover = this;
+	}
+	void isClicked(){	}
+
 }
 
 class Number extends Text{

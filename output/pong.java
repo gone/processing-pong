@@ -28,6 +28,7 @@ Number player1_score;
 Number player2_score;
 float[] player1_score_pos;
 float[] player2_score_pos;
+Text mouseover;
 
 PFont font;
 
@@ -51,10 +52,10 @@ public void setup(){
 
 public void intro(){
 	objects = new Thing[4];
-	Text pong = new Text("PONG", new float[] {width/2, height*.15f}, COLOR);
-	Text newgame = new Text("Start", new float[] {width/2, height*.25f}, COLOR);
-	Text options = new Text("Options", new float[] {width/2, height*.35f}, COLOR);
-	Text credits = new Text("Created By Ben Beecher", new float[] {width/2, height*.80f}, COLOR);
+	Text pong = new Text("PONG", new float[] {width/2, height*.15f}, COLOR, false);
+	Text newgame = new Text("Start", new float[] {width/2, height*.25f}, COLOR, true);
+	Text options = new Text("Options", new float[] {width/2, height*.35f}, COLOR, true);
+	Text credits = new Text("Created By Ben Beecher", new float[] {width/2, height*.80f}, COLOR, false);
 	objects[0] = pong;
 	objects[1] = newgame;
 	objects[2] = options;
@@ -82,22 +83,24 @@ public void newGame(){
 					   MOUSE);
 	objects[2] = right;
 
-
 	player1_score_pos = new float[] {width/2+width*.2f, height*.05f};
 	player2_score_pos = new float[] {width/2-width*.2f, height*.05f};
 	player1_score = new Number(0, player1_score_pos, COLOR);
 	player2_score = new Number(0, player2_score_pos, COLOR);
 	objects[3] = player1_score;
 	objects[4] = player2_score;
-
 }
 
 public void mousePressed() {
 	baller.speed = new float[]{-5, 0};
+	if (mouseover != null){
+		mouseover.isClicked();
+	}
 }
 
 public void draw(){
 	background(0);
+	//	mouseover = null;
 
 	for (int i = 0; i < objects.length; i++){
 		objects[i].display();
@@ -127,7 +130,6 @@ class Thing{
 	float[] pos = new float[2];
 	float[] speed = new float[2];
 	int col; 
-	boolean solid = true;
 	Thing(){}
 	public void display(){}
 	public void move(){}
@@ -140,11 +142,12 @@ class Thing{
 
 class Text extends Thing{
 	String txt;
-	boolean solid = false;
-	Text(String txt_,float[] pos_,int col_){
+	boolean select;
+	Text(String txt_,float[] pos_,int col_, boolean select_){
 		txt = txt_;
 		pos = pos_;
 		col = col_;
+		select = select_;
 		speed = new float[] {0, 0};
 	}
 	Text(float[] pos_,int col_){
@@ -159,12 +162,20 @@ class Text extends Thing{
 		fill(col);
 		textAlign(CENTER);
 		text(txt, pos[X], pos[Y]);
+		if (select){
+			isSelected();
+		}
 	}
+	public void isSelected(){
+		//test that mouse is over
+		mouseover = this;
+	}
+	public void isClicked(){	}
+
 }
 
 class Number extends Text{
 	int txt;
-	boolean solid = false;
 	Number(int txt_, float[] pos_, int col_){
 		super(pos_, col_);
 		txt = txt_;
