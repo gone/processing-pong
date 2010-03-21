@@ -24,29 +24,46 @@ int COLOR = 255;
 int paddle_speed  = 10;
 int paddle_height = 80;
 int paddle_width  = 10;
-int player1_score = 0;
-int player2_score = 0;
+Number player1_score;
+Number player2_score;
 float[] player1_score_pos;
 float[] player2_score_pos;
 
 PFont font;
 
-Thing[] objects = new Thing[3];
+Thing[] objects = new Thing[0];
 
 int X = 0;
 int Y = 1;
 int KEYBOARD = 0;
 int MOUSE = 1;
+
 public void setup(){
 	font  = loadFont("AndaleMono-48.vlw");
 
-	size(1000, 1000);
+	size(800, 800);
 	stroke(COLOR);
 
-	player1_score_pos = new float[] {width/2+width*.2f, height*.05f};
-	player2_score_pos = new float[] {width/2-width*.2f, height*.05f};
+	intro();
+	//newGame();
+}
 
-	//ball
+
+public void intro(){
+	objects = new Thing[4];
+	Text pong = new Text("PONG", new float[] {width/2, height*.15f}, COLOR);
+	Text newgame = new Text("Start", new float[] {width/2, height*.25f}, COLOR);
+	Text options = new Text("Options", new float[] {width/2, height*.35f}, COLOR);
+	Text credits = new Text("Created By Ben Beecher", new float[] {width/2, height*.80f}, COLOR);
+	objects[0] = pong;
+	objects[1] = newgame;
+	objects[2] = options;
+	objects[3] = credits;
+}
+
+
+public void newGame(){
+	objects = new Thing[5];
 	float[] initspeed = {0, 0};
 	float[] initpos = {width/2, height/2};
 	baller = new Ball(COLOR, initpos, initspeed);
@@ -64,6 +81,15 @@ public void setup(){
 					   paddle_width, paddle_height,
 					   MOUSE);
 	objects[2] = right;
+
+
+	player1_score_pos = new float[] {width/2+width*.2f, height*.05f};
+	player2_score_pos = new float[] {width/2-width*.2f, height*.05f};
+	player1_score = new Number(0, player1_score_pos, COLOR);
+	player2_score = new Number(0, player2_score_pos, COLOR);
+	objects[3] = player1_score;
+	objects[4] = player2_score;
+
 }
 
 public void mousePressed() {
@@ -72,51 +98,88 @@ public void mousePressed() {
 
 public void draw(){
 	background(0);
- 	textFont(font, 48);
-	fill(COLOR);
-	text(player1_score, player1_score_pos[X], player1_score_pos[Y]);
-	text(player2_score, player2_score_pos[X], player2_score_pos[Y]);
 
 	for (int i = 0; i < objects.length; i++){
 		objects[i].display();
 		objects[i].move();
-		if (objects[i] != baller && 
-			baller.detectCollide( (Paddle)objects[i] ))
-			{
-				baller.speed[X] = -baller.speed[X];
-				float diff = objects[i].pos[Y] - baller.pos[Y];
-				float delta = diff *.1f;
-				baller.speed[Y] = baller.speed[Y] - delta;
-				baller.speed[X] += baller.speed[X] *.05f;
-			}
 	}
+	gameloop();
+}
 
-	if (baller.pos[X] > width){ //player 1 scored
-		player1_score++;
-		newball();
-	} else if (baller.pos[X] < 0){ //player 2 scored
-		player2_score++;
-		newball();
+public void gameloop(){
+	baller.detectCollide(left);
+	baller.detectCollide(right);
+
+	if (baller.pos[X] > width){
+		println(baller.pos[X]);
+		player1_score.txt++; 
+		baller.reset();
+	} else if (baller.pos[X] < 0){
+		println(baller.pos[X]);
+		player2_score.txt++;
+		baller.reset();
 	}
 }
 
-public void newball(){
-	float[] initspeed = {0, 0};
-	float[] initpos = {width/2, height/2};
-	baller = new Ball(COLOR, initpos, initspeed);
-	objects[0] = baller;
-}
 
 class Thing{
 
 	float[] pos = new float[2];
 	float[] speed = new float[2];
 	int col; 
-
+	boolean solid = true;
 	Thing(){}
 	public void display(){}
 	public void move(){}
+	public void checkWalls(){
+		if (pos[Y] > height || pos[Y] < 0){
+			pos[Y] += (pos[Y] < 0) ? speed[Y] : -speed[Y];
+		}
+	}
 }
+
+class Text extends Thing{
+	String txt;
+	boolean solid = false;
+	Text(String txt_,float[] pos_,int col_){
+		txt = txt_;
+		pos = pos_;
+		col = col_;
+		speed = new float[] {0, 0};
+	}
+	Text(float[] pos_,int col_){
+		pos = pos_;
+		col = col_;
+		speed = new float[] {0, 0};
+	}
+
+	public void move(){}
+	public void display(){
+		textFont(font, 48);
+		fill(col);
+		textAlign(CENTER);
+		text(txt, pos[X], pos[Y]);
+	}
+}
+
+class Number extends Text{
+	int txt;
+	boolean solid = false;
+	Number(int txt_, float[] pos_, int col_){
+		super(pos_, col_);
+		txt = txt_;
+	}
+	public void move(){}
+
+	public void display(){
+		textFont(font, 48);
+		fill(col);
+		textAlign(CENTER);
+		text(txt, pos[X], pos[Y]);
+	}
+}
+				 
+
 
 class Paddle extends Thing{
 	float width; 
@@ -150,12 +213,6 @@ class Paddle extends Thing{
 			else if (key == 's'){
 				pos[Y] += speed[Y];
 			}
-		}
-	}
-
-	public void checkWalls(){
-		if (pos[Y] > height || pos[Y] < 0){
-			pos[Y] += (pos[Y] < 0) ? speed[Y] : -speed[Y];
 		}
 	}
 
@@ -204,15 +261,21 @@ class Ball extends Thing{
 		ellipse(pos[X], pos[Y], radius, radius);
 	}
 
-	public void move(){
-		pos[X] += speed[X];
-		pos[Y] += speed[Y];
+	public void checkWalls(){
 		if (pos[Y] > height || pos[Y] < 0){
 			speed[Y] = -speed[Y];
 		}
 	}
 
- 	public boolean detectCollide(Paddle paddle){
+	public void move(){
+		pos[X] += speed[X];
+		pos[Y] += speed[Y];
+		checkWalls();
+	}
+
+	
+
+ 	public void detectCollide(Paddle paddle){
  		float[] bhitbox = {pos[X] - (radius * .8f), pos[Y] - (radius * .8f),
  						   pos[X] + (radius * .8f), pos[Y] + (radius * .8f)};
 
@@ -227,10 +290,19 @@ class Ball extends Thing{
 			 bhitbox[TOP] > phitbox[BOTTOM] ||
 			 bhitbox[RIGHT] < phitbox[LEFT] ||
 			 phitbox[RIGHT] < bhitbox[LEFT]) {
-			return false;
+		}else {
+			baller.speed[X] = -baller.speed[X];
+			float diff = paddle.pos[Y] - baller.pos[Y];
+			float delta = diff *.1f;
+			baller.speed[Y] = baller.speed[Y] - delta;
+			baller.speed[X] += baller.speed[X] *.05f;
 		}
-		return true;
 	}
+	public void reset(){
+		pos = new float[] {width/2, height/2};
+		speed = new float[] {0, 0};
+	}
+
 }
 
   static public void main(String args[]) {
