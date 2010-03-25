@@ -1,7 +1,7 @@
 Paddle left;
 Paddle right;
 Ball baller; //playa gotta play
-int COLOR = 255;
+int COLOR = 0;
 int paddle_speed  = 10;
 int paddle_height = 80;
 int paddle_width  = 10;
@@ -10,6 +10,8 @@ Number player2_score;
 float[] player1_score_pos;
 float[] player2_score_pos;
 Text mouseover;
+boolean GAMESTARTED = false;
+int test = -1;
 
 PFont font;
 
@@ -22,25 +24,22 @@ int MOUSE = 1;
 
 void setup(){
 	font  = loadFont("AndaleMono-48.vlw");
-
+	
 	size(800, 800);
-	stroke(COLOR);
-
+	//	stroke(COLOR);
 	intro();
-	//newGame();
 }
 
-
 void intro(){
-	objects = new Thing[4];
+	objects = new Thing[3];
 	Text pong = new Text("PONG", new float[] {width/2, height*.15}, COLOR, false);
-	Text newgame = new Text("Start", new float[] {width/2, height*.25}, COLOR, true);
-	Text options = new Text("Options", new float[] {width/2, height*.35}, COLOR, true);
-	Text credits = new Text("Created By Ben Beecher", new float[] {width/2, height*.80}, COLOR, false);
+	Text newgame = new Start("Start", new float[] {width/2, height*.25}, COLOR, true);
+	//Text options = new Text("Options", new float[] {width/2, height*.35}, COLOR, true);
+	Text credits = new Text("BenBeecher@gmail.com", new float[] {width/2, height*.80}, COLOR, false);
 	objects[0] = pong;
 	objects[1] = newgame;
-	objects[2] = options;
-	objects[3] = credits;
+	objects[2] = credits;
+	//	objects[2] = options;
 }
 
 
@@ -48,18 +47,18 @@ void newGame(){
 	objects = new Thing[5];
 	float[] initspeed = {0, 0};
 	float[] initpos = {width/2, height/2};
-	baller = new Ball(COLOR, initpos, initspeed);
+	baller = new Ball(#EEEE00, initpos, initspeed);
 	objects[0] = baller;
 
 	//paddles
 	left = new Paddle(width *.05, height/2, 
-					  paddle_speed, COLOR,
+					  paddle_speed, #EE0000,
 					  paddle_width, paddle_height,
 					  KEYBOARD);
 	objects[1] = left;
 
 	right = new Paddle(width * .95, height/2, 
-					   paddle_speed, COLOR,
+					   paddle_speed, #00009C,
 					   paddle_width, paddle_height,
 					   MOUSE);
 	objects[2] = right;
@@ -73,21 +72,24 @@ void newGame(){
 }
 
 void mousePressed() {
-	baller.speed = new float[]{-5, 0};
+	if (GAMESTARTED){
+		baller.speed = new float[]{-5, 0};
+	}
 	if (mouseover != null){
 		mouseover.isClicked();
 	}
 }
 
 void draw(){
-	background(0);
-	mouseover = null;
+	background(255);
 
 	for (int i = 0; i < objects.length; i++){
 		objects[i].display();
 		objects[i].move();
 	}
-	gameloop();
+	if (GAMESTARTED){
+		gameloop();
+	}
 }
 
 void gameloop(){
@@ -95,12 +97,10 @@ void gameloop(){
 	baller.detectCollide(right);
 
 	if (baller.pos[X] > width){
-		println(baller.pos[X]);
-		player1_score.txt++; 
+		player2_score.txt++; 
 		baller.reset();
 	} else if (baller.pos[X] < 0){
-		println(baller.pos[X]);
-		player2_score.txt++;
+		player1_score.txt++;
 		baller.reset();
 	}
 }
@@ -139,7 +139,7 @@ class Text extends Thing{
 
 	void move(){}
 	void display(){
-		textFont(font, 48);
+		textFont(font, 32);
 		fill(col);
 		textAlign(CENTER);
 		text(txt, pos[X], pos[Y]);
@@ -148,11 +148,49 @@ class Text extends Thing{
 		}
 	}
 	void isSelected(){
-		//test that mouse is over
-		mouseover = this;
+		float width = textWidth(txt);
+		float height = textAscent() + textDescent();
+		float left = pos[X] - width/2;
+		float right = pos[X] + width/2;
+		float top = pos[Y] - height/2;
+		float bottom = pos[Y] + height/2;
+		
+		if (mouseY < bottom &&
+			mouseY > top  &&
+			mouseX < right &&
+			mouseX > left){
+			
+			mouseover = this;
+			select();
+		}
+	    else if (mouseover == this) {
+			unselect();
+			mouseover = null;
+		}
+			
 	}
-	void isClicked(){	}
+	void isClicked(){}
+	void select(){}
+	void unselect(){}
 
+}
+
+class Start extends Text{
+	Start(String txt_,float[] pos_,int col_, boolean select_){
+		super(txt_, pos_, col_, select_);
+	}
+	void isClicked(){
+		newGame();
+		GAMESTARTED = true;
+		unselect();
+	}
+	void select(){
+		col = #FF6600;
+	}
+	void unselect(){
+		col = COLOR;
+		mouseover = null;
+	}
 }
 
 class Number extends Text{
@@ -174,27 +212,34 @@ class Number extends Text{
 
 
 class Paddle extends Thing{
-	float width; 
+	float wid; 
 	float hei;
 	int update;
 
 	Paddle(float x_, float y_,
 		   float speed_, int col_,
-		   float width_, float hei_,
+		   float wid_, float hei_,
 		   int update_){
 		pos[X] = x_;
 		pos[Y] = y_;	 
 		speed[Y] = speed_;
 		speed[X] = 0;
 		col = col_; 
-		width = width_; 
+		wid = wid_; 
 		hei = hei_;
 		update = update_;
 	}
 	void display(){
-		stroke(col);
+		stroke(COLOR);
+		line(width, pos[Y]+hei/2, 0, pos[Y]+hei/2);
+		line(width, pos[Y]-hei/2, 0, pos[Y]-hei/2);
+		line(pos[X]+wid/2, height, pos[X]+wid/2, 0);
+		line(pos[X]-wid/2, height, pos[X]-wid/2, 0);
+
+
+		fill(col);
 		rectMode(CENTER);
-		rect(pos[X], pos[Y], width, hei);
+		rect(pos[X], pos[Y], wid, hei);
 	}
 	
 	void keyboardUpdate(){
@@ -249,8 +294,15 @@ class Ball extends Thing{
 	}
 
 	void display(){
-		stroke(col);
-		ellipse(pos[X], pos[Y], radius, radius);
+		stroke(COLOR);
+		line(width, pos[Y]+radius/2, 0, pos[Y]+radius/2);
+		line(width, pos[Y]-radius/2, 0, pos[Y]-radius/2);
+		line(pos[X]+radius/2, height, pos[X]+radius/2, 0);
+		line(pos[X]-radius/2, height, pos[X]-radius/2, 0);
+
+		fill(col);
+		rectMode(CENTER);
+		rect(pos[X], pos[Y], float(radius), float(radius));
 	}
 
 	void checkWalls(){
@@ -265,14 +317,12 @@ class Ball extends Thing{
 		checkWalls();
 	}
 
-	
-
  	void detectCollide(Paddle paddle){
  		float[] bhitbox = {pos[X] - (radius * .8), pos[Y] - (radius * .8),
  						   pos[X] + (radius * .8), pos[Y] + (radius * .8)};
 
-		float[] phitbox = {paddle.pos[X] - paddle.width/2, paddle.pos[Y] - paddle.hei/2,
-						   paddle.pos[X] + paddle.width/2, paddle.pos[Y] + paddle.hei/2};
+		float[] phitbox = {paddle.pos[X] - paddle.wid/2, paddle.pos[Y] - paddle.hei/2,
+						   paddle.pos[X] + paddle.wid/2, paddle.pos[Y] + paddle.hei/2};
 		int LEFT = 0;
 		int TOP = 1;
 		int RIGHT = 2;
