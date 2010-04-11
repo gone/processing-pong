@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="application/processing" content="text/javascript">
+<script src="w.js"></script>
+  <script>/*
+ * This code searches for all the <script type="application/processing" target="canvasid">
+ * in your page and loads each script in the target canvas with the proper id.
+ * It is useful to smooth the process of adding Processing code in your page and starting
+ * the Processing.js engine.
+ */
+if ( window.addEventListener ) {
+	window.addEventListener("load", function() {
+		var scripts = document.getElementsByTagName("script");
+		
+		for ( var i = 0; i < scripts.length; i++ ) {
+			if ( scripts[i].type == "application/processing" ) {
+				var src = scripts[i].src, canvas = scripts[i].nextSibling;
+	
+				if ( src && src.indexOf("#") ) {
+					canvas = document.getElementById( src.substr( src.indexOf("#") + 1 ) );
+				} else {
+					while ( canvas && canvas.nodeName.toUpperCase() != "CANVAS" )
+						canvas = canvas.nextSibling;
+				}
+
+				if ( canvas ) {
+					Processing(canvas, scripts[i].text);
+				}
+			}
+		}
+	}, false);
+}
+</script>
+</head>
+<body>
+<h2>Pong</h2>
+
+<p>by Ben Beecher.</p>
+<p>W and S to move left player</p>
+<p>mouse to move right player</p>
+
+<script type="application/processing">
+var COLOR = 0;
+var X = 0;
+var Y = 1;
+var mouseover;
+var twidth = 38;
+var theight = 22;
+
+var LEFT = 0;
+var TOP = 1;
+var RIGHT = 2;
+var BOTTOM = 3;
+
+var font;
+
+var objects = [];
+var selected;
+// quick note about the sizing algo - recursive decent into an expression tree
+//layers - check if your children are selected, if so then don't select. 
+
+function Thing(pos, speed, col){
+	this.pos = pos;
+	this.speed = speed;
+	this.col = col; 
+	function display(){}
+	this.drawbox = function(){
+		var dim = this.getDimensions()
+		rectMode(CORNERS);
+		noFill();
+		rect(dim[LEFT], dim[TOP], dim[RIGHT], dim[BOTTOM]);
+	};
+}
+
+
+function BinaryOp(op, pos, col, left, right){
+	this.op = op;
+	this.pos = pos;
+	this.col = col;
+	this.left = left;
+	this.right = right;
+
+	this.getWidth = function(){
+		return this.left.totalwidth + 	this.right.totalwidth + (theight * 3); //the op and one " " on each side
+	};
+
+	this.getHeight = function(){
+		return max(this.left.totalheight, this.right.totalheight);
+	};
+
+	this.totalWidth = this.getWidth();
+	this.totalHeight = this.getHeight();
+
+	this.getBoxDimensions = function(){
+		var leftdim = this.left.getBoxDimensions();
+		var rightdim = this.right.getBoxDimensions();
+		var dim = [];
+		dim[LEFT]		= leftdim[LEFT];
+		dim[TOP]		= leftdim[TOP];
+		dim[RIGHT]		= rightdim[RIGHT];
+		dim[BOTTOM]		= rightdim[BOTTOM];
+		return dim;
+	};
+	
+	this.display = function(){
+		this.left.display();
+		this.right.display();
+		
+	};
+
+	this.adjustKids = function(){
+		this.left.pos = [this.pos[X] - (this.left.totalwidth/2 + 1), this.pos[Y]]; // one for the space
+		this.right.pos = [this.pos[X] + (this.right.totalwidth/2 + 1), this.pos[Y]];
+	};
+
+};
+
+
+
+function Text(txt, pos, col){
+	this.txt = txt;
+	this.totalwidth = this.txt.length * twidth;
+	this.totalheight = theight;
+	this.pos = pos;
+	this.col = col;
+	this.speed = [0, 0];
+	this.move = function(){};
+	this.display = function(){
+		textFont(font, 32);
+		fill(this.col);
+
+		//processingjs doesn't have text alignment support yet 
+		// so instead, I need to calculate the offset by hand :(
+		//this.pos[X] and Y are the center so
+		//x -  totalwidth/2, y + theight/2 should do it
+		var textx = this.pos[X] - this.totalwidth/2;
+		var texty = this.pos[Y] + this.totalheight/2;
+
+		text(this.txt, textx, texty);
+		this.isHover();
+		if (selected === this){
+			this.isSelected()
+		}
+	};
+
+	this.getBoxDimensions = function(){
+		var dim = [];
+		dim[LEFT]		= this.pos[X] - this.totalwidth/2;
+		dim[RIGHT]		= this.pos[X];
+		dim[TOP]		= this.pos[Y] - this.totalheight/2;
+		dim[BOTTOM]		= this.pos[Y] + this.totalheight/2 + 3; //looks wierd if it's exact
+		return dim;
+	};
+
+	this.drawbox = function(){
+		var dim = this.getBoxDimensions()
+		rectMode(CORNERS);
+		noFill();
+		rect(dim[LEFT], dim[TOP], dim[RIGHT], dim[BOTTOM]);
+	};
+
+	this.isHover = function(){
+		var dim = this.getBoxDimensions()
+		if (mouseY < dim[BOTTOM] &&
+			mouseY > dim[TOP]  &&
+			mouseX < dim[RIGHT] &&
+			mouseX > dim[LEFT]){
+			
+			mouseover = this;
+			console.log(this.txt);
+			this.hover();
+		}
+	    else if (mouseover == this) {
+			this.unhover();
+			mouseover = null;
+		}
+			
+	};
+
+	this.hover  = function(){
+		this.drawbox();
+	};
+
+	this.isSelected  = function(){
+		this.drawbox();
+	};
+
+
+	this.isClicked = function(){
+		selected = this;
+	};
+
+	this.unhover = function(){};
+}
+
+
+thing = new Thing();
+Text.prototype = thing;
+
+
+class Number extends Text{
+	Number(txt_, pos_, col_){
+		super(pos_, col_);
+		txt = txt_;
+	}
+	void move(){}
+
+	void display(){
+		textFont(font, 48);
+		fill(col);
+		textAlign(CENTER);
+		text(txt, pos[X], pos[Y]);
+	}
+}
+
+class Start extends Text{
+	Start(var txt_, var pos_, var col_, var select_){
+		super(txt_, pos_, col_, select_);
+	}
+	void isClicked(){
+		newGame();
+		GAMESTARTED = true;
+		unselect();
+	}
+	void select(){
+		col = #FF6600;
+	}
+	void unselect(){
+		col = COLOR;
+		mouseover = null;
+	}
+}
+
+function setup(){
+	font  = loadFont("Courier New");
+	size(800, 200);
+	var y = new Text("this is a test", [width/2, height/2], COLOR);
+	var x = new Text("of the broadcasting system", [width, height/3], COLOR);
+	var plus = new BinaryOp("+", [width/2, height/2], COLOR, y, x)
+	plus.adjustKids();
+	objects.push(plus);
+}
+
+function draw(){
+	background(255);
+	for (var x in objects){
+		objects[x].display()
+	}
+}
+
+function mousePressed() {
+	if (mouseover != null){
+		mouseover.isClicked();
+	}
+}
+
+
+
+</script><canvas width="200" height="200" ></canvas><p></p></body></html>
+  
